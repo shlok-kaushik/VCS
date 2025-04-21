@@ -553,3 +553,101 @@ ipcMain.handle('checkout-commit', async (event, repoPath, commitId) => {
       return { success: false, message: `Checkout failed: ${err.message}` };
   }
 });
+ipcMain.handle('get-commit-files', async (event, repoPath, commitId) => {
+    console.log(`IPC Handler: get-commit-files for repo: ${repoPath}, commitId: ${commitId}`);
+    if (!repoPath || commitId === undefined || commitId === null) {
+      return { success: false, message: 'Repository path or Commit ID is missing.', files: [] };
+    }
+  
+    const vcsPath = path.join(repoPath, '.myvcs');
+    const dbPath = path.join(vcsPath, 'db.sqlite');
+  
+    if (!fs.existsSync(dbPath)) {
+      console.log(`IPC Handler: Get commit files failed - DB not found at ${dbPath}`);
+      return { success: false, message: 'Repository database not found.', files: [] };
+    }
+  
+    let commitFilesDb = null;
+    try {
+      console.log(`IPC Handler: Opening commit files DB at ${dbPath}`);
+      const CommitFilesDatabase = require('better-sqlite3');
+      commitFilesDb = new CommitFilesDatabase(dbPath, { readonly: true });
+      commitFilesDb.pragma('journal_mode = WAL');
+  
+      const stmt = commitFilesDb.prepare(`
+          SELECT path, hash
+          FROM commit_files
+          WHERE commit_id = ?
+          ORDER BY path ASC
+      `);
+  
+      const files = stmt.all(commitId);
+  
+      commitFilesDb.close();
+      console.log(`IPC Handler: Commit files DB closed. Found ${files.length} files for commit ${commitId}.`);
+  
+      return { success: true, files: files };
+  
+    } catch (err) {
+      console.error('IPC Handler: Error getting commit files:', err);
+      if (commitFilesDb) {
+        try { commitFilesDb.close(); } catch (closeErr) { console.error('Error closing commit files DB after error:', closeErr); }
+      }
+      return { success: false, message: `Failed to get files for commit ${commitId}: ${err.message}`, files: [] };
+    }
+  });
+  
+  ipcMain.handle('get-blob-content', async (event, repoPath, fileHash) => {
+    console.log(`IPC Handler: get-blob-content for repo: ${repoPath}, hash: ${fileHash}`);
+     if (!repoPath || !fileHash) {
+      return { success: false, message: 'Repository path or file hash is missing.' };
+    }
+    const vcsPath = path.join(repoPath, '.myvcs');
+    const dbPath = path.join(vcsPath, 'db.sqlite');
+  
+    if (!fs.existsSync(dbPath)) {
+      return { success: false, message: 'Repository database not found.' };
+    }
+  
+    let blobDb = null;
+    try {
+      const BlobDatabase = require('better-sqlite3');
+      blobDb = new BlobDatabase(dbPath, { readonly: true });
+      blobDb.pragma('journal_mode = WAL');
+  
+      const stmt = blobDb.prepare('SELECT content FROM blobs WHERE hash = ?');
+      const blob = stmt.get(fileHash);
+      blobDb.close();
+  
+      if (!blob) {
+          return { success: false, message: `Blob content not found for hash ${fileHash}` };
+      }
+      // Assuming content is stored as BLOB, convert to UTF-8 string for diffing
+      const contentString = Buffer.from(blob.content).toString('utf-8');
+      return { success: true, content: contentString };
+  
+    } catch (err) {
+      console.error('IPC Handler: Error getting blob content:', err);
+       if (blobDb) { try { blobDb.close(); } catch (e) {} }
+      return { success: false, message: `Failed to get blob content: ${err.message}` };
+    }
+  });
+  
+  ipcMain.handle('get-current-file-content', async (event, repoPath, filePath) => {
+    console.log(`IPC Handler: get-current-file-content for repo: ${repoPath}, file: ${filePath}`);
+    if (!repoPath || !filePath) {
+      return { success: false, message: 'Repository path or file path is missing.' };
+    }
+    const absolutePath = path.join(repoPath, filePath);
+    try {
+      // Read file as UTF-8 string
+      const content = fs.readFileSync(absolutePath, { encoding: 'utf-8' });
+      return { success: true, content: content };
+    } catch (err) {
+      if (err.code === 'ENOENT') { // File doesn't exist in working directory
+          return { success: true, content: '' }; // Treat non-existent file as empty for diff
+      }
+      console.error(`IPC Handler: Error reading current file ${absolutePath}:`, err);
+      return { success: false, message: `Failed to read current file ${filePath}: ${err.message}` };
+    }
+  });
