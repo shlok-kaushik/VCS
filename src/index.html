@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'">
+    <title>Login App</title>
+    
+</head>
+<body>
+    <div id="login-view" class="view">
+        <h1>Login</h1>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <div id="dashboard-view" class="view" style="display: none;">
+        
+        <h2>Yet to be names VCS</h2>
+        <div id="repo-section">
+            <div class="repo-view" id="repo-view" >
+                <button id="logout-button">Logout</button>
+            <h2>Create Repository</h2>
+            <button id="create-repo-button">Create or Open existing repository</button>
+            </div>
+            <p id="repo-message"></p>
+
+
+        <div class="app-view" id="app-view" style="display: none;">
+                <h2>Make Commit</h2>
+            <input id="commit-message" type="text" placeholder="Commit message" />
+            <button id="commit-button">Commit</button>
+            <pre id="commit-output"></pre>
+    
+                
+                <button id="log-button">View Commit Log</button>
+            <pre id="log-output" style="background-color: #eee; border: 1px solid #ccc; padding: 10px; min-height: 100px; white-space: pre-wrap; word-wrap: break-word;"></pre>
+            <hr> <h3>Checkout Previous Commit</h3>
+            <div class="form-group">
+                <label for="checkout-commit-id">Commit ID to Checkout:</label>
+                <input type="text" id="checkout-commit-id" placeholder="Enter Commit ID from log">
+            </div>
+            <button id="checkout-button">Checkout Commit</button>
+            <p id="checkout-message" style="font-weight: bold;"></p>
+            </div>
+        </div>
+</div> 
+ 
+    
+</body>
+
+</html>
