@@ -38,6 +38,7 @@
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.9.1",
     "diff": "^7.0.0",
+    "dpkg": "^1.0.0",
     "electron-squirrel-startup": "^1.0.1"
   }
 }
